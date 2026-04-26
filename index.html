@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UE DataTable ↔ Excel 在线转换器 | 完美还原NSLOCTEXT | 虚幻引擎数据表编辑</title>
+  <meta name="description" content="专为 Unreal Engine 开发者打造的免费工具。支持DataTable的JSON/CSV与Excel的互相转换，自动解析并完美还原NSLOCTEXT文本，解决UE4/UE5数据表批量修改痛点。">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "UE DataTable ↔ Excel 双向转换器",
+    "description": "专为虚幻引擎开发者设计的双向转换工具，支持NSLOCTEXT完美还原及Excel批量编辑。",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>UE DataTable ↔ Excel 转换器</h1>
+      <p class="subtitle">纯浏览器端运行，无需上传到服务器</p>
+      <nav class="nav-links">
+        <a href="#guide" class="nav-link">使用教程</a>
+      </nav>
+    </header>
+    <main>
+      <section id="panel-ue-to-excel" class="panel">
+        <h2>UE → Excel</h2>
+        <p class="panel-desc">上传 UE 导出的 JSON / CSV 文件，转换为 Excel</p>
+        <div class="drop-zone" id="dz-ue-input">
+          <div class="drop-content">
+            <svg class="upload-icon" viewBox="0 0 24 24" width="48" height="48">
+              <path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
+              <path fill="currentColor" d="M8 12h8v2H8zm0 4h8v2H8zm0-8h5v2H8z"/>
+            </svg>
+            <p class="drop-text">拖拽文件到此处，或<span class="click-link">点击选择文件</span></p>
+            <p class="drop-hint">支持 .json（UE DataTable 格式）和 .csv 文件</p>
+          </div>
+          <input type="file" accept=".json,.csv" hidden>
+        </div>
+        <div class="status" id="status-ue-input"></div>
+        <div class="preview" id="preview-ue-input" hidden></div>
+        <div class="actions">
+          <button id="btn-download-excel" disabled>下载为 Excel (.xlsx)</button>
+        </div>
+      </section>
+      <div class="divider">
+        <span>⇅</span>
+      </div>
+      <section id="panel-excel-to-ue" class="panel">
+        <h2>Excel → UE</h2>
+        <p class="panel-desc">上传编辑好的 .xlsx 文件，转换为 UE 可用格式</p>
+        <div class="drop-zone" id="dz-excel-input">
+          <div class="drop-content">
+            <svg class="upload-icon" viewBox="0 0 24 24" width="48" height="48">
+              <path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
+              <path fill="currentColor" d="M8 12h8v2H8zm0 4h8v2H8zm0-8h5v2H8z"/>
+            </svg>
+            <p class="drop-text">拖拽文件到此处，或<span class="click-link">点击选择文件</span></p>
+            <p class="drop-hint">支持 .xlsx 文件</p>
+          </div>
+          <input type="file" accept=".xlsx" hidden>
+        </div>
+        <div class="status" id="status-excel-input"></div>
+        <div class="preview" id="preview-excel-input" hidden></div>
+        <div class="actions">
+          <button id="btn-download-json" disabled>下载为 JSON</button>
+          <button id="btn-download-csv" disabled>下载为 CSV</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 使用教程 -->
+    <section id="guide" class="guide">
+
+      <!-- Features -->
+      <div class="guide-section">
+        <h2 class="guide-heading">功能特性</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>批量修改，效率翻倍</h3>
+            <p>告别 UE 内逐条编辑的低效，也无需再手动分列 CSV。直接将 DataTable 转为标准 .xlsx 格式，在 Excel 中批量修改、使用公式、下拉填充，轻松处理海量数据。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>NSLOCTEXT 自动解析与还原</h3>
+            <p>导出的文本不再是一串乱码。工具自动提取 NSLOCTEXT 中的源文本供你修改，无论是修改旧数据还是新增行，都会自动处理 Key 与 Package，导回 UE 时结构完整、Key 永不冲突。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>CSV 格式零烦恼</h3>
+            <p>解决 UE 导出的 CSV 用 Excel 打开全部挤在一列的问题。工具生成的是标准 .xlsx，修改后一键转回 JSON 或 CSV，直接导入 UE DataTable，格式不再出错。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3>纯本地运行，安全可靠</h3>
+            <p>所有转换均在您的浏览器中完成，无需上传至任何服务器。DataTable 数据绝不离开您的电脑，保护您的项目资产安全。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="guide-section">
+        <h2 class="guide-heading">使用步骤</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>导出与上传</h3>
+              <p>从 UE 导出 DataTable 为 JSON 或 CSV，拖入本工具。</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>在 Excel 中批量编辑</h3>
+              <p>下载生成好的 .xlsx 文件，在 Excel 里放心大胆地进行批量修改、新增行。</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>导回 UE</h3>
+              <p>把改好的 Excel 拖回网页，下载为 JSON 或 CSV，直接导入回 UE，无需任何手动调整。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="guide-section">
+        <h2 class="guide-heading">常见问题</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>为什么 UE 导出的 CSV 用 Excel 打开，所有内容都挤在第一列？</summary>
+            <p>这是因为 UE 导出的 CSV 并非标准的 UTF-8 编码，而 Excel 默认使用系统编码打开（Windows 下为 GBK），导致字符错位，所有数据堆在第一列。本工具不存在此问题：你只需要把 JSON 或 CSV 拖进来，工具直接生成 .xlsx 文件，用 Excel 打开时列结构清晰、排版整齐，立即可以开始批量编辑 UE DataTable 数据，无需手动分列或调整编码。</p>
+          </details>
+          <details class="faq-item">
+            <summary>导出的 JSON 里文字变成了 NSLOCTEXT 格式，怎么编辑？</summary>
+            <p>NSLOCTEXT 是虚幻引擎的本地化标记。当 DataTable 中某一列被设为 FText 类型而非 String 时，UE 在导出 JSON 时会为每个单元格生成包含 Namespace、Key 和源文本的 NSLOCTEXT 表达式，这是 UE4/UE5 支持多语言翻译的基础。本工具在转换成 Excel 时会智能解析，只显示源文本让你编辑，Key 和 Namespace 存放在右侧附加列中自动保管。新增行时，工具会自动生成符合 UE 规范的唯一 Key，改完导回 JSON，NSLOCTEXT 结构完整还原，无需手动处理。</p>
+          </details>
+          <details class="faq-item">
+            <summary>我在 Excel 里新增了数据行，导回 UE 会不会出问题？</summary>
+            <p>不会。当你把修改后的 Excel 拖回工具时，对于新增行中填写了文本但没有指定 Key 和 Package 的单元格，工具会自动扫描表内已有的 Package 值作为参照，并生成一个标准的 32 位大写 UUID 作为 Key（格式如 32813E2549E740620926B33D5ADD8E），确保全局唯一、永不重复。这种方式与 UE 编辑器内部生成新 Key 的机制完全一致，所以新增行无论导出为 JSON 还是 CSV，都可以直接导入回 Unreal Engine，无需手动调整。</p>
+          </details>
+          <details class="faq-item">
+            <summary>这个工具对 UE 版本有要求吗？支持哪些格式？</summary>
+            <p>没有任何版本限制。本工具同时支持 <strong>UE4 和 UE5</strong>，因为它处理的是 DataTable 导出的文件格式而非引擎内部数据。输入支持 UE 导出的 <strong>JSON</strong> 和 <strong>CSV</strong> 两种格式，输出可以生成标准的 <strong>.xlsx</strong> 供 Excel 编辑，编辑完成后也支持转回 <strong>JSON</strong> 或 <strong>CSV</strong> 重新导入 UE DataTable。所有转换在浏览器本地完成，无需安装任何插件或运行时环境。</p>
+          </details>
+        </div>
+      </div>
+
+    </section>
+
+    <footer>
+      <p>UE DataTable ↔ Excel 转换器 &middot; 纯前端工具，数据仅在你本地浏览器中处理</p>
+    </footer>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
