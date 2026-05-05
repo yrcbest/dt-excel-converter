@@ -1,8 +1,8 @@
 import { DataTableRow, NSLocTextMeta } from '../types';
-import { parseJSON, parseCSV } from '../converter/parse-input';
+import { parseJSON } from '../converter/parse-input';
 import { convertToExcel } from '../converter/to-excel';
 import { parseExcel } from '../converter/from-excel';
-import { formatAsJSON, formatAsCSV } from '../converter/format-output';
+import { formatAsJSON } from '../converter/format-output';
 
 function getEl<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -123,7 +123,6 @@ function setupDropZone(config: PanelConfig) {
   const dropZone = getEl(config.dropZoneId);
   const fileInput = dropZone.querySelector('input[type="file"]') as HTMLInputElement;
 
-  // Click to upload
   dropZone.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('.actions')) return;
     fileInput.click();
@@ -136,7 +135,6 @@ function setupDropZone(config: PanelConfig) {
     fileInput.value = '';
   });
 
-  // Drag & drop
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('drag-over');
@@ -174,15 +172,15 @@ export function initApp() {
     inputId: 'dz-ue-input',
     statusId: 'status-ue-input',
     previewId: 'preview-ue-input',
-    accept: '.json,.csv',
+    accept: '.json',
     onFile: async (file) => {
       clearPreview(previewUE);
       statusUE.className = 'status';
       statusUE.textContent = '正在解析...';
 
-      if (!validateExtension(file.name, ['.json', '.csv'])) {
+      if (!validateExtension(file.name, ['.json'])) {
         statusUE.className = 'status error';
-        statusUE.textContent = '不支持的文件类型，请上传 .json 或 .csv 文件';
+        statusUE.textContent = '不支持的文件类型，请上传 .json 文件';
         ueRows = null;
         btnExcel.disabled = true;
         return;
@@ -190,8 +188,7 @@ export function initApp() {
 
       try {
         const text = await readFileAsText(file);
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        const result = ext === 'json' ? parseJSON(text) : parseCSV(text);
+        const result = parseJSON(text);
         ueRows = result.rows;
         ueNsLocText = result.nsLocText;
 
@@ -229,12 +226,10 @@ export function initApp() {
 
   // ============ Excel → UE Panel ============
   let excelRows: DataTableRow[] | null = null;
-  let excelNsLocText: NSLocTextMeta = {};
   let excelBaseName = 'DataTable';
   const previewExcel = getEl('preview-excel-input');
   const statusExcel = getEl('status-excel-input');
   const btnJSON = getEl('btn-download-json') as HTMLButtonElement;
-  const btnCSV = getEl('btn-download-csv') as HTMLButtonElement;
 
   setupDropZone({
     dropZoneId: 'dz-excel-input',
@@ -252,15 +247,14 @@ export function initApp() {
         statusExcel.textContent = '不支持的文件类型，请上传 .xlsx 文件';
         excelRows = null;
         btnJSON.disabled = true;
-        btnCSV.disabled = true;
         return;
       }
 
       try {
         const buffer = await readFileAsArrayBuffer(file);
         const result = parseExcel(buffer);
-        excelRows = result.rows;
-        excelNsLocText = result.nsLocText;
+        excelRows = result.rows;            // unflattened for download
+        const flatRows = result.flatRows;   // flat for preview
 
         if (excelRows.length === 0) {
           throw new Error('文件中没有有效数据');
@@ -271,16 +265,13 @@ export function initApp() {
         statusExcel.className = 'status success';
         statusExcel.textContent = `✓ 成功解析 ${excelRows.length} 行数据`;
 
-        renderPreview(excelRows, previewExcel);
+        renderPreview(flatRows, previewExcel);
         btnJSON.disabled = false;
-        btnCSV.disabled = false;
       } catch (err) {
         statusExcel.className = 'status error';
         statusExcel.textContent = `✗ ${err instanceof Error ? err.message : '解析失败'}`;
         excelRows = null;
-        excelNsLocText = {};
         btnJSON.disabled = true;
-        btnCSV.disabled = true;
       }
     },
   });
@@ -289,21 +280,8 @@ export function initApp() {
     if (excelRows) {
       try {
         const ts = getTimestamp();
-        const content = formatAsJSON(excelRows, excelNsLocText);
+        const content = formatAsJSON(excelRows);
         downloadText(content, `${excelBaseName}_${ts}.json`, 'application/json;charset=utf-8');
-      } catch (err) {
-        statusExcel.className = 'status error';
-        statusExcel.textContent = `✗ 导出失败：${err instanceof Error ? err.message : '未知错误'}`;
-      }
-    }
-  });
-
-  btnCSV.addEventListener('click', () => {
-    if (excelRows) {
-      try {
-        const ts = getTimestamp();
-        const content = formatAsCSV(excelRows, excelNsLocText);
-        downloadText(content, `${excelBaseName}_${ts}.csv`, 'text/csv;charset=utf-8');
       } catch (err) {
         statusExcel.className = 'status error';
         statusExcel.textContent = `✗ 导出失败：${err instanceof Error ? err.message : '未知错误'}`;

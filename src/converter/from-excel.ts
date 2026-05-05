@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import { DataTableRow, NSLocTextMeta } from '../types';
+import { DataTableRow, NSLocTextMeta, buildNSLocText } from '../types';
+import { unflattenRow, collectFlatKeys, pruneEmpty } from './nested';
 
 const PKG_SUFFIX = ' (package)';
 const KEY_SUFFIX = ' (key)';
@@ -35,7 +36,7 @@ function detectNSColumns(rawHeaders: string[]): NSColumnInfo[] {
   return result;
 }
 
-export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocText: NSLocTextMeta } {
+export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; flatRows: DataTableRow[]; nsLocText: NSLocTextMeta } {
   const wb = XLSX.read(buffer, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const data: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
@@ -47,7 +48,6 @@ export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocTe
   const rawHeaders: string[] = (data[0] as unknown[]).map(h => String(h ?? '').trim());
   const nsColumns = detectNSColumns(rawHeaders);
 
-  // Indices to skip when building the field list (package/key columns)
   const skipForFields = new Set<number>();
   for (const col of nsColumns) {
     skipForFields.add(col.pkgIdx);
@@ -63,7 +63,7 @@ export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocTe
   }
 
   const nsLocText: NSLocTextMeta = {};
-  const rows: DataTableRow[] = [];
+  const flatRows: DataTableRow[] = [];
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i] as unknown[];
@@ -95,7 +95,7 @@ export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocTe
       }
     }
 
-    rows.push(obj);
+    flatRows.push(obj);
   }
 
   // Auto-generate missing package/key for new rows
@@ -106,7 +106,7 @@ export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocTe
     }
     if (!existingPkg) continue;
 
-    for (const row of rows) {
+    for (const row of flatRows) {
       const val = row[field];
       if (val !== undefined && val !== null && val !== '') {
         if (!rowMap[row.Name] || !rowMap[row.Name].package) {
@@ -118,5 +118,55 @@ export function parseExcel(buffer: ArrayBuffer): { rows: DataTableRow[]; nsLocTe
     }
   }
 
-  return { rows, nsLocText };
+  // Embed NSLOCTEXT strings into flat values before unflattening
+  for (const row of flatRows) {
+    for (const [field, rowMap] of Object.entries(nsLocText)) {
+      const ns = rowMap[row.Name as string];
+      if (ns && row[field] !== undefined && row[field] !== null && row[field] !== '') {
+        row[field] = buildNSLocText(ns.package, ns.key, String(row[field]));
+      }
+    }
+  }
+
+  // Fill missing flat keys across all rows so every row has the same structure
+  const allKeys = collectFlatKeys(flatRows);
+  for (const row of flatRows) {
+    for (const key of allKeys) {
+      if (!(key in row)) {
+        row[key] = '';
+      }
+    }
+  }
+
+  // Unflatten each row back to nested structure
+  const unpruned = flatRows.map(r => unflattenRow(r) as Record<string, unknown>);
+
+  // Collect top-level schema (all keys appearing in any row)
+  const schemaKeys = new Set<string>();
+  const schemaTypes = new Map<string, 'object' | 'array' | 'primitive'>();
+  for (const row of unpruned) {
+    for (const [key, value] of Object.entries(row)) {
+      if (key === 'Name') continue;
+      schemaKeys.add(key);
+      if (!schemaTypes.has(key)) {
+        if (Array.isArray(value)) schemaTypes.set(key, 'array');
+        else if (typeof value === 'object' && value !== null) schemaTypes.set(key, 'object');
+        else schemaTypes.set(key, 'primitive');
+      }
+    }
+  }
+
+  // Prune deep empty leaves, then normalize top-level keys for UE schema consistency
+  const rows = unpruned.map(row => {
+    const cleaned = pruneEmpty(row) as Record<string, unknown> ?? { Name: row.Name };
+    for (const key of schemaKeys) {
+      if (!(key in cleaned)) {
+        const type = schemaTypes.get(key) || 'primitive';
+        cleaned[key] = type === 'array' ? [] : type === 'object' ? {} : '';
+      }
+    }
+    return cleaned as DataTableRow;
+  });
+
+  return { rows, flatRows, nsLocText: {} };
 }
